@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "561687182800",
+    "project_id": "audiocallgirls",
+    "storage_bucket": "audiocallgirls.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:561687182800:android:57364e4a6b4f19c12a8dd5",
+        "android_client_info": {
+          "package_name": "com.lovecall.love_call_girls"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDix4Z3SI_u8pUm7tGP-qLOlFT5rjwkLqU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

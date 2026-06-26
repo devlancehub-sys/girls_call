@@ -1,0 +1,21 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "audiocallgirls",
+          "appId": "1:561687182800:android:57364e4a6b4f19c12a8dd5",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "audiocallgirls",
+          "configurations": {
+            "android": "1:561687182800:android:57364e4a6b4f19c12a8dd5"
+          }
+        }
+      }
+    }
+  }
+}
