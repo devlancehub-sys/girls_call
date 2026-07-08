@@ -18,6 +18,7 @@ import '../../routes/app_routes.dart';
 import '../dashboard/dashboard_controller.dart';
 
 class ActiveCallController extends GetxController {
+  static bool active = false;
   final ApiService _api = Get.find<ApiService>();
   final CallSessionService _callSession = Get.find<CallSessionService>();
   final StorageService _storage = Get.find<StorageService>();
@@ -55,6 +56,7 @@ class ActiveCallController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    active = true;
     final args = Get.arguments as Map<String, dynamic>? ?? {};
     callId = JsonParse.toInt(args['call_id']);
     roomId = args['room_id']?.toString() ?? '';
@@ -94,6 +96,8 @@ class ActiveCallController extends GetxController {
         if (joined) {
           _stopBackgroundVoiceRetry();
           voiceConnected.value = true;
+          debugPrint('[Call Lifecycle] Call connected (Zego joined). CallId: $callId');
+          Get.snackbar('[Call Lifecycle]', 'Zego connected! Joined Room: $roomId', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3));
           voiceLastError.value = null;
           return;
         }
@@ -312,6 +316,8 @@ class ActiveCallController extends GetxController {
 
     Map<String, dynamic>? data;
     try {
+      debugPrint('[Call Lifecycle] Call ended locally by host. CallId: $callId');
+      Get.snackbar('[Call Lifecycle]', 'Call ended locally (Call ID: $callId)', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3));
       data = await _requestCallEnd();
       if (_hasEnded) return;
       if (data != null) {
@@ -358,8 +364,9 @@ class ActiveCallController extends GetxController {
   Future<void> _handleRemoteEnd(Map<String, dynamic> data) async {
     if (_hasEnded) return;
     debugPrint(
-      '[ActiveCall] remote end call_id=${data['call_id']} reason=${data['reason']}',
+      '[Call Lifecycle] Call ended remotely. CallId: ${data['call_id']} reason=${data['reason']}',
     );
+    Get.snackbar('[Call Lifecycle]', 'Call ended remotely (Call ID: ${data['call_id']}, Reason: ${data['reason']})', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3));
     _hasEnded = true;
     _stopBackgroundVoiceRetry();
     _callSession.unregister();
@@ -378,18 +385,18 @@ class ActiveCallController extends GetxController {
 
   Future<void> _leaveAndExit() async {
     _timer?.cancel();
+    Get.snackbar('[Call Lifecycle]', 'Zego cleanup (leave room) started', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3));
     await ZegoCallService.leaveVoiceRoom();
     await _presence.restoreAfterCall();
     if (Get.isRegistered<DashboardController>()) {
       await Get.find<DashboardController>().loadDashboard();
     }
-    if (Get.currentRoute == AppRoutes.activeCall) {
-      Get.offAllNamed(AppRoutes.mainShell);
-    }
+    Get.offAllNamed(AppRoutes.mainShell);
   }
 
   @override
   void onClose() {
+    active = false;
     _timer?.cancel();
     _stopBackgroundVoiceRetry();
     if (_hasEnded) {

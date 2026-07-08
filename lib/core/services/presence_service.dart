@@ -66,21 +66,9 @@ class PresenceService extends GetxService with WidgetsBindingObserver {
     _callActive = false;
   }
 
-  /// Disconnect socket after a call, then reconnect if host should stay available.
   Future<void> restoreAfterCall() async {
-    final epoch = ++_restoreEpoch;
-
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-    if (epoch != _restoreEpoch || _callActive) return;
-
     _callActive = false;
     _keepAliveInBackground = false;
-    _socket.disconnect();
-    isOnline.value = false;
-
-    await Future<void>.delayed(const Duration(milliseconds: 350));
-
-    if (epoch != _restoreEpoch || _callActive) return;
 
     if (!Get.isRegistered<HostAvailabilityService>()) return;
 

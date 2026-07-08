@@ -290,6 +290,7 @@ class ZegoVoiceEngine {
 
   /// stopPublishing → stopPlaying → logoutRoom
   Future<void> cleanupRoom({String? roomId, bool destroyEngineAfter = false}) async {
+    debugPrint('[Call Lifecycle] Zego cleanup started. RoomId: $roomId | CurrentRoom: $_currentRoom');
     final room = roomId ?? _currentRoom;
     _currentRoom = null;
     _streamId = null;

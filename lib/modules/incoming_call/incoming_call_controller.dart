@@ -16,6 +16,7 @@ import '../../core/utils/zego_plugin_check.dart';
 import '../../routes/app_routes.dart';
 
 class IncomingCallController extends GetxController {
+  static bool active = false;
   final ApiService _api = Get.find<ApiService>();
   final SocketService _socket = Get.find<SocketService>();
 
@@ -34,6 +35,7 @@ class IncomingCallController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    active = true;
     final raw = Map<String, dynamic>.from(Get.arguments as Map? ?? {});
     callData = FcmPayloadMapper.toCallArguments(raw);
     unawaited(ensureMicrophonePermission());
@@ -68,9 +70,7 @@ class IncomingCallController extends GetxController {
   Future<void> _dismissIncoming() async {
     await _stopRingtone();
     _detachRemoteEndHandlers();
-    if (Get.currentRoute == AppRoutes.incomingCall) {
-      Get.back();
-    }
+    Get.offAllNamed(AppRoutes.mainShell);
   }
 
   Future<void> _stopRingtone() async {
@@ -99,7 +99,11 @@ class IncomingCallController extends GetxController {
     await _stopRingtone();
     _detachRemoteEndHandlers();
     try {
+      print('[Call Lifecycle] Call accepted locally by host. CallId: $callId');
+      Get.snackbar('[Call Lifecycle]', '2. Accepting call locally (Call ID: $callId)...', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3));
       final response = await _api.post('${ApiConstants.callsPrefix}/$callId/accept');
+      print('[Call Lifecycle] Backend response for accept call: ${response.data}');
+      Get.snackbar('[Call Lifecycle]', 'Backend response for accept call received', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3));
       final body = response.data as Map<String, dynamic>? ?? {};
       final data = JsonParse.toMap(body['data']);
       if (data == null) {
@@ -139,7 +143,7 @@ class IncomingCallController extends GetxController {
       );
     } on DioException catch (e) {
       Get.snackbar('Call failed', callErrorMessage(_api.extractError(e)));
-      Get.back();
+      Get.offAllNamed(AppRoutes.mainShell);
     } finally {
       isProcessing.value = false;
     }
@@ -163,14 +167,13 @@ class IncomingCallController extends GetxController {
       }
     } finally {
       isProcessing.value = false;
-      if (Get.currentRoute == AppRoutes.incomingCall) {
-        Get.back();
-      }
+      Get.offAllNamed(AppRoutes.mainShell);
     }
   }
 
   @override
   void onClose() {
+    active = false;
     _detachRemoteEndHandlers();
     _stopRingtone();
     super.onClose();

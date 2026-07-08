@@ -79,16 +79,37 @@ class SocketService extends GetxService {
 
     socket.onConnectError((data) => debugPrint('[Socket] connect error: $data'));
 
-    socket.on('incoming_call', (data) => onIncomingCall?.call(_toMap(data)));
-    socket.on('call_accepted', (data) => onCallAccepted?.call(_toMap(data)));
-    socket.on('call_rejected', (data) => onCallRejected?.call(_toMap(data)));
-    socket.on('call_missed', (data) => onCallMissed?.call(_toMap(data)));
+    socket.on('incoming_call', (data) {
+      final map = _toMap(data);
+      debugPrint('[Call Lifecycle] Socket received event: incoming_call | data: $map');
+      Get.snackbar('[Call Lifecycle]', 'Socket event: incoming_call (Call ID: ${map['call_id']})', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3));
+      onIncomingCall?.call(map);
+    });
+    socket.on('call_accepted', (data) {
+      final map = _toMap(data);
+      debugPrint('[Call Lifecycle] Socket received event: call_accepted | data: $map');
+      Get.snackbar('[Call Lifecycle]', 'Socket event: call_accepted (Call ID: ${map['call_id']})', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3));
+      onCallAccepted?.call(map);
+    });
+    socket.on('call_rejected', (data) {
+      final map = _toMap(data);
+      debugPrint('[Call Lifecycle] Socket received event: call_rejected | data: $map');
+      Get.snackbar('[Call Lifecycle]', 'Socket event: call_rejected (Call ID: ${map['call_id']})', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3));
+      onCallRejected?.call(map);
+    });
+    socket.on('call_missed', (data) {
+      final map = _toMap(data);
+      debugPrint('[Call Lifecycle] Socket received event: call_missed | data: $map');
+      Get.snackbar('[Call Lifecycle]', 'Socket event: call_missed (Call ID: ${map['call_id']})', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3));
+      onCallMissed?.call(map);
+    });
 
     socket.on('call_ended', (data) {
       final map = _toMap(data);
       debugPrint(
-        '[Socket] call_ended call_id=${map['call_id']} reason=${map['reason']}',
+        '[Call Lifecycle] Socket received event: call_ended | call_id=${map['call_id']} reason=${map['reason']}',
       );
+      Get.snackbar('[Call Lifecycle]', 'Socket event: call_ended (Call ID: ${map['call_id']}, Reason: ${map['reason']})', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3));
       if (Get.isRegistered<CallSessionService>()) {
         Get.find<CallSessionService>().handleCallEnded(map);
       }

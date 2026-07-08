@@ -4,6 +4,8 @@ import '../../core/messaging/fcm_payload_mapper.dart';
 import '../../core/services/host_availability_service.dart';
 import '../../core/services/socket_service.dart';
 import '../../routes/app_routes.dart';
+import '../active_call/active_call_controller.dart';
+import '../incoming_call/incoming_call_controller.dart';
 import '../online_users/online_users_controller.dart';
 
 class MainShellController extends GetxController {
@@ -40,9 +42,9 @@ class MainShellController extends GetxController {
 
   void _listenIncomingCalls() {
     _socket.onIncomingCall = (data) {
-      if (Get.currentRoute == AppRoutes.incomingCall ||
-          Get.currentRoute == AppRoutes.activeCall ||
-          Get.currentRoute == AppRoutes.outgoingCall) {
+      print('[Call Lifecycle] incoming_call event received. ActiveCallController active: ${ActiveCallController.active}, IncomingCallController active: ${IncomingCallController.active}');
+      if (ActiveCallController.active || IncomingCallController.active) {
+        print('[Call Lifecycle] Blocked incoming call screen navigation: Host is busy.');
         return;
       }
       Get.toNamed(
