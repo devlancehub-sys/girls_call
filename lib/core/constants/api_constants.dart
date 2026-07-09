@@ -19,9 +19,6 @@ class ApiConstants {
   static const String deviceSync = '/users/device';
 
   static const String hostAvailability = '/host/availability';
-  static const String hostDailyTask = '/host/daily-task';
-  static const String hostDailyTaskClaim = '/host/daily-task/claim-reward';
-  static const String hostWeeklyBonusClaim = '/host/daily-task/claim-weekly-bonus';
 
   static const String callersOnline = '/callers/online';
   static const String callersBrowse = '/callers';
@@ -41,4 +38,8 @@ class ApiConstants {
 
   static const String promoValidate = '/promo-codes/validate';
   static const String promoApply = '/promo-codes/apply';
+
+  static const String hostTier = '/host/tier';
+  static const String hostTierProgress = '/host/tier-progress';
+  static const String hostChangeTier = '/host/change-tier';
 }

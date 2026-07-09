@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -31,6 +33,15 @@ class ProfileController extends GetxController {
   final avatarUrl = GirlsAvatarAssets.defaultFileName.obs;
   final totalCalls = 0.obs;
   final rating = 0.0.obs;
+
+  // Tier information
+  final currentTier = 'iron'.obs;
+  final currentTierLabel = ''.obs;
+  final lifetimeTalkMinutes = 0.obs;
+  final callRate = 0.0.obs;
+  final unlockedTiers = <String>[].obs;
+  final lockedTiers = <String>[].obs;
+  final isChangingTier = false.obs;
 
   String? get selectedAvatarFileName =>
       GirlsAvatarAssets.presetFileName(avatarUrl.value);
@@ -66,6 +77,7 @@ class ProfileController extends GetxController {
         GirlsAvatarAssets.defaultFileName;
     totalCalls.value = JsonParse.toInt(data['total_calls']);
     rating.value = JsonParse.toDouble(data['rating']);
+    currentTier.value = data['tier']?.toString() ?? 'iron';
   }
 
   Future<void> loadProfile({bool forceRefresh = true}) async {
@@ -135,6 +147,7 @@ class ProfileController extends GetxController {
     callVibrateEnabled.value = value;
     await _storage.setCallVibrateEnabled(value);
   }
+
 
   @override
   void onClose() {

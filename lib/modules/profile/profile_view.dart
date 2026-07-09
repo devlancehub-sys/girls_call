@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_screen.dart';
@@ -46,13 +47,19 @@ class _ProfileForm extends StatelessWidget {
             child: Row(
               children: [
                 Obx(
-                  () => UserAvatar(
+                  () => Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _getTierColor(controller.currentTier.value), width: 2),
+                    ),
+                    child: UserAvatar(
                     avatarUrl: controller.avatarUrl.value,
                     name: controller.name.value.isNotEmpty
                         ? controller.name.value
                         : controller.username.value,
                     radius: 36,
                   ),
+                    ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -242,5 +249,20 @@ class _ProfileForm extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Color _getTierColor(String tier) {
+    switch (tier.toLowerCase()) {
+      case 'iron':
+        return const Color(0xFF6B7280);
+      case 'silver':
+        return const Color(0xFF9CA3AF);
+      case 'gold':
+        return const Color(0xFFF59E0B);
+      case 'diamond':
+        return const Color(0xFF06B6D4);
+      default:
+        return AppColors.primary;
+    }
   }
 }

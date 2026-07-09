@@ -14,4 +14,9 @@ class AppColors {
   static const Color warning = Color(0xFFFBBF24);
   static const Color error = Color(0xFFEF4444);
   static const Color glassBorder = Color(0x33FFFFFF);
+  static const Color ironLevel = Color(0x1AFFFFFF);
+  static const Color silverLevel = Color(0x1AFFFFFF);
+  static const Color goldLevel = Color(0x1AFFFFFF);
+  static const Color contentCreatorLevel = Color(0x1AFFFFFF);
+
 }

@@ -27,7 +27,7 @@ class LoginView extends GetView<LoginController> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Login with username & password\n(Admin creates your account — no self signup)',
+              'Login with username & password',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: AppColors.textSecondary,
                   ),

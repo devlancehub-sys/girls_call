@@ -106,7 +106,7 @@ class DashboardView extends GetView<DashboardController> {
                 ),
               ),
               const SizedBox(height: 16),
-              _DailyTaskCard(controller: controller, currency: currency),
+              _TierCard(controller: controller),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -188,11 +188,13 @@ class DashboardView extends GetView<DashboardController> {
                                 fontWeight: FontWeight.bold,
                               ),
                         ),
-                        Text(
-                          'You earn 60% per billed minute',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.success,
-                              ),
+                        Obx(
+                          () => Text(
+                            'Day: ${controller.dayHostShare.value.toInt()}% | Night: ${controller.nightHostShare.value.toInt()}%',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.success,
+                                ),
+                          ),
                         ),
                       ],
                     ),
@@ -249,11 +251,10 @@ class DashboardView extends GetView<DashboardController> {
   }
 }
 
-class _DailyTaskCard extends StatelessWidget {
-  const _DailyTaskCard({required this.controller, required this.currency});
+class _TierCard extends StatelessWidget {
+  const _TierCard({required this.controller});
 
   final DashboardController controller;
-  final NumberFormat currency;
 
   @override
   Widget build(BuildContext context) {
@@ -266,26 +267,24 @@ class _DailyTaskCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Daily Task',
+                    'Creator Tier',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: controller.earningStatusActive.value
-                        ? AppColors.success.withValues(alpha: 0.15)
-                        : AppColors.warning.withValues(alpha: 0.15),
+                    color: _getTierColor(controller.currentTier.value).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    controller.earningStatusActive.value ? 'ACTIVE' : 'INACTIVE',
+                    controller.currentTierLabel.value.isNotEmpty 
+                        ? controller.currentTierLabel.value.toUpperCase() 
+                        : controller.currentTier.value.toUpperCase(),
                     style: TextStyle(
-                      color: controller.earningStatusActive.value
-                          ? AppColors.success
-                          : AppColors.warning,
+                      color: _getTierColor(controller.currentTier.value),
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
                     ),
@@ -293,223 +292,149 @@ class _DailyTaskCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Complete ${controller.dailyMinCalls.value} calls OR ${controller.dailyMinMinutes.value} minutes to unlock withdrawals & reward',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-            ),
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.local_fire_department, color: AppColors.primary, size: 20),
-                const SizedBox(width: 6),
+                Icon(Icons.timer_outlined, size: 18, color: AppColors.textSecondary),
+                const SizedBox(width: 8),
                 Text(
-                  '${controller.streakCount.value} day streak',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
+                  'Lifetime: ${controller.lifetimeTalkMinutes.value} min',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            _ProgressRow(
-              label: 'Calls',
-              value: '${controller.completedCalls.value}/${controller.dailyMinCalls.value}',
-              percent: controller.progressCallsPercent.value,
-            ),
-            const SizedBox(height: 12),
-            _ProgressRow(
-              label: 'Minutes',
-              value: '${controller.completedMinutes.value}/${controller.dailyMinMinutes.value}',
-              percent: controller.progressMinutesPercent.value,
-            ),
-            const SizedBox(height: 16),
-            if (controller.targetMet.value && controller.rewardClaimed.value)
-              Row(
-                children: [
-                  const Icon(Icons.check_circle, color: AppColors.success, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Task complete! Reward ${currency.format(controller.dailyRewardAmount.value)} claimed',
-                      style: TextStyle(color: AppColors.success),
-                    ),
-                  ),
-                ],
-              )
-            else if (controller.canClaimReward.value)
-              GlowButton(
-                label: 'Claim ${currency.format(controller.dailyRewardAmount.value)} Reward',
-                isLoading: controller.isClaimingReward.value,
-                onPressed: controller.claimDailyReward,
-              )
-            else if (controller.targetMet.value)
-              Text(
-                'Task complete — reward processing…',
-                style: TextStyle(color: AppColors.success),
-              )
-            else
-              Text(
-                'Daily reward: ${currency.format(controller.dailyRewardAmount.value)} on completion',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-              ),
-            const SizedBox(height: 20),
-            const Divider(height: 1),
-            const SizedBox(height: 16),
-            Text(
-              'Weekly Bonus',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Complete daily task all ${controller.weeklyDaysRequired.value} days (Mon–Sun). Weekly bonus credited after the week ends — only if every day is done.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: controller.weeklyDayStatus.isEmpty
-                  ? List.generate(controller.weeklyDaysRequired.value, (index) {
-                      final done = index < controller.weeklyDaysCompleted.value;
-                      return _WeekDayDot(done: done, label: '');
-                    })
-                  : controller.weeklyDayStatus.map((day) {
-                      final done = day['completed'] == true;
-                      final label = day['day_label']?.toString() ?? '';
-                      return _WeekDayDot(done: done, label: label);
-                    }).toList(),
-            ),
             const SizedBox(height: 8),
-            Text(
-              '${controller.weeklyDaysCompleted.value}/${controller.weeklyDaysRequired.value} days completed this week',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            if (controller.weeklyBonusGranted.value)
+            if (controller.nextTierLabel.value.isNotEmpty)
               Row(
                 children: [
-                  const Icon(Icons.emoji_events, color: AppColors.primary, size: 20),
+                  Icon(Icons.arrow_upward, size: 18, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Weekly bonus ${currency.format(controller.weeklyBonusAmount.value)} received!',
-                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+                      '${controller.minutesToNextTier.value} min to ${controller.nextTierLabel.value}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.primary,
+                          ),
                     ),
                   ),
                 ],
-              )
-            else if (controller.canClaimWeeklyBonus.value)
-              GlowButton(
-                label: 'Claim Last Week ${currency.format(controller.weeklyBonusAmount.value)}',
-                isLoading: controller.isClaimingWeeklyBonus.value,
-                onPressed: controller.claimWeeklyBonus,
-              )
-            else if (controller.previousWeekBonusPending.value)
-              Text(
-                'Last week complete — claim your weekly bonus',
-                style: TextStyle(color: AppColors.primary),
               ),
+            const SizedBox(height: 16),
+            Obx(
+              () {
+                final isOffline = controller.isOffline;
+                if (!isOffline) {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: AppColors.warning),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Tier can only be changed while you are offline',
+                            style: TextStyle(
+                              color: AppColors.warning,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: ['iron', 'silver', 'gold', 'diamond'].map((tier) {
+                    final isUnlocked = controller.unlockedTiers.contains(tier);
+                    final isCurrent = controller.currentTier.value == tier;
+                    final requiredMinutes = controller.tierRequirements[tier.toLowerCase()] ?? 0;
+                    final hasEnoughMinutes = controller.lifetimeTalkMinutes.value >= requiredMinutes;
+                    final canSelect = isUnlocked && !isCurrent && hasEnoughMinutes;
+                    
+                    return InkWell(
+                      onTap: canSelect
+                          ? () => controller.changeTier(tier)
+                          : null,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isCurrent
+                              ? _getTierColor(tier)
+                              : canSelect
+                                  ? _getTierColor(tier).withValues(alpha: 0.15)
+                                  : AppColors.textSecondary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isCurrent
+                                ? _getTierColor(tier)
+                                : canSelect
+                                    ? _getTierColor(tier).withValues(alpha: 0.4)
+                                    : AppColors.textSecondary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              hasEnoughMinutes ? Icons.check : Icons.lock,
+                              size: 14,
+                              color: isCurrent
+                                  ? Colors.white
+                                  : hasEnoughMinutes
+                                      ? _getTierColor(tier)
+                                      : AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              tier.toUpperCase(),
+                              style: TextStyle(
+                                color: isCurrent
+                                    ? Colors.white
+                                    : hasEnoughMinutes
+                                        ? _getTierColor(tier)
+                                        : AppColors.textSecondary,
+                                fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
           ],
         ),
       ),
     );
   }
-}
 
-class _WeekDayDot extends StatelessWidget {
-  const _WeekDayDot({required this.done, required this.label});
-
-  final bool done;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: done
-                ? AppColors.success.withValues(alpha: 0.2)
-                : AppColors.textSecondary.withValues(alpha: 0.15),
-            border: Border.all(
-              color: done ? AppColors.success : AppColors.textSecondary.withValues(alpha: 0.4),
-            ),
-          ),
-          child: Center(
-            child: Icon(
-              done ? Icons.check : Icons.circle_outlined,
-              size: 16,
-              color: done ? AppColors.success : AppColors.textSecondary,
-            ),
-          ),
-        ),
-        if (label.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 10,
-                ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _ProgressRow extends StatelessWidget {
-  const _ProgressRow({
-    required this.label,
-    required this.value,
-    required this.percent,
-  });
-
-  final String label;
-  final String value;
-  final int percent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: percent / 100,
-            minHeight: 8,
-            backgroundColor: AppColors.textSecondary.withValues(alpha: 0.2),
-            color: percent >= 100 ? AppColors.success : AppColors.primary,
-          ),
-        ),
-      ],
-    );
+  Color _getTierColor(String tier) {
+    switch (tier.toLowerCase()) {
+      case 'iron':
+        return const Color(0xFF6B7280);
+      case 'silver':
+        return const Color(0xFF9CA3AF);
+      case 'gold':
+        return const Color(0xFFF59E0B);
+      case 'diamond':
+        return const Color(0xFF06B6D4);
+      default:
+        return AppColors.primary;
+    }
   }
 }
 

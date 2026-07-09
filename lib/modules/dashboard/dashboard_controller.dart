@@ -18,7 +18,6 @@ class DashboardController extends GetxController {
   final isLoading = true.obs;
   final isTogglingAvailability = false.obs;
   final isClaimingReward = false.obs;
-  final isClaimingWeeklyBonus = false.obs;
 
   final todayEarnings = 0.0.obs;
   final totalEarnings = 0.0.obs;
@@ -31,28 +30,18 @@ class DashboardController extends GetxController {
   final hostName = ''.obs;
   final onlineDurationSeconds = 0.obs;
 
-  // Daily task
-  final dailyMinCalls = 6.obs;
-  final dailyMinMinutes = 60.obs;
-  final completedCalls = 0.obs;
-  final completedMinutes = 0.obs;
-  final progressCallsPercent = 0.obs;
-  final progressMinutesPercent = 0.obs;
-  final targetMet = false.obs;
-  final earningStatusActive = false.obs;
-  final streakCount = 0.obs;
-  final dailyRewardAmount = 0.0.obs;
-  final rewardClaimed = false.obs;
-  final canClaimReward = false.obs;
-
-  // Weekly bonus
-  final weeklyBonusAmount = 0.0.obs;
-  final weeklyDaysCompleted = 0.obs;
-  final weeklyDaysRequired = 7.obs;
-  final weeklyBonusGranted = false.obs;
-  final canClaimWeeklyBonus = false.obs;
-  final previousWeekBonusPending = false.obs;
-  final weeklyDayStatus = <Map<String, dynamic>>[].obs;
+  // Tier
+  final currentTier = ''.obs;
+  final currentTierLabel = ''.obs;
+  final lifetimeTalkMinutes = 0.obs;
+  final nextTier = ''.obs;
+  final nextTierLabel = ''.obs;
+  final minutesToNextTier = 0.obs;
+  final dayHostShare = 0.0.obs;
+  final nightHostShare = 0.0.obs;
+  final unlockedTiers = <String>[].obs;
+  final lockedTiers = <String>[].obs;
+  final isChangingTier = false.obs;
 
   Timer? _durationTimer;
 
@@ -64,15 +53,6 @@ class DashboardController extends GetxController {
     super.onInit();
     loadDashboard();
     _socket.on('earning_updated', (_) => _loadEarnings());
-    _socket.on('daily_task_completed', (_) {
-      unawaited(_loadDailyTask());
-      unawaited(_loadEarnings());
-    });
-    _socket.on('weekly_bonus_granted', (_) {
-      unawaited(_loadDailyTask());
-      unawaited(_loadEarnings());
-      Get.snackbar('Weekly Bonus', 'You completed all 7 days — bonus credited!');
-    });
     _startDurationTicker();
   }
 
@@ -80,8 +60,6 @@ class DashboardController extends GetxController {
   void onClose() {
     _durationTimer?.cancel();
     _socket.off('earning_updated');
-    _socket.off('daily_task_completed');
-    _socket.off('weekly_bonus_granted');
     super.onClose();
   }
 
@@ -101,7 +79,7 @@ class DashboardController extends GetxController {
       await Future.wait([
         _loadProfile(),
         _loadEarnings(),
-        _loadDailyTask(),
+        _loadTierInfo(),
         _availability.refresh(),
       ]);
       onlineDurationSeconds.value = _availability.onlineDurationSeconds.value;
@@ -125,83 +103,6 @@ class DashboardController extends GetxController {
       }
     } finally {
       isTogglingAvailability.value = false;
-    }
-  }
-
-  Future<void> claimDailyReward() async {
-    isClaimingReward.value = true;
-    try {
-      final response = await _api.post(ApiConstants.hostDailyTaskClaim);
-      final data = JsonParse.toMap(response.data['data']);
-      if (data != null) _applyDailyTask(data);
-
-      await _loadEarnings();
-      Get.snackbar(
-        'Reward claimed',
-        '₹${dailyRewardAmount.value.toStringAsFixed(0)} added to your earnings',
-      );
-    } on DioException catch (e) {
-      Get.snackbar('Error', _api.extractError(e));
-    } finally {
-      isClaimingReward.value = false;
-    }
-  }
-
-  Future<void> claimWeeklyBonus() async {
-    isClaimingWeeklyBonus.value = true;
-    try {
-      final response = await _api.post(ApiConstants.hostWeeklyBonusClaim);
-      final data = JsonParse.toMap(response.data['data']);
-      if (data != null) _applyDailyTask(data);
-
-      await _loadEarnings();
-      Get.snackbar(
-        'Weekly bonus',
-        '₹${weeklyBonusAmount.value.toStringAsFixed(0)} added to your earnings',
-      );
-    } on DioException catch (e) {
-      Get.snackbar('Error', _api.extractError(e));
-    } finally {
-      isClaimingWeeklyBonus.value = false;
-    }
-  }
-
-  Future<void> _loadDailyTask() async {
-    try {
-      final response = await _api.get(ApiConstants.hostDailyTask);
-      final data = JsonParse.toMap(response.data['data']);
-      if (data == null) return;
-      _applyDailyTask(data);
-    } on DioException catch (e) {
-      debugPrint('[Dashboard] daily task load failed: ${_api.extractError(e)}');
-    }
-  }
-
-  void _applyDailyTask(Map<String, dynamic> data) {
-    dailyMinCalls.value = JsonParse.toInt(data['daily_min_calls'], fallback: 6);
-    dailyMinMinutes.value = JsonParse.toInt(data['daily_min_minutes'], fallback: 60);
-    completedCalls.value = JsonParse.toInt(data['completed_calls']);
-    completedMinutes.value = JsonParse.toInt(data['completed_minutes']);
-    progressCallsPercent.value = JsonParse.toInt(data['progress_calls_percent']);
-    progressMinutesPercent.value = JsonParse.toInt(data['progress_minutes_percent']);
-    targetMet.value = data['target_met'] == true;
-    earningStatusActive.value = data['earning_status']?.toString() == 'active';
-    streakCount.value = JsonParse.toInt(data['streak_count']);
-    dailyRewardAmount.value = JsonParse.toDouble(data['reward_amount']);
-    rewardClaimed.value = data['reward_claimed'] == true;
-    canClaimReward.value = data['can_claim_reward'] == true;
-    weeklyBonusAmount.value = JsonParse.toDouble(data['weekly_bonus_amount']);
-    weeklyDaysCompleted.value = JsonParse.toInt(data['weekly_days_completed']);
-    weeklyDaysRequired.value = JsonParse.toInt(data['weekly_days_required'], fallback: 7);
-    weeklyBonusGranted.value = data['weekly_bonus_granted'] == true;
-    canClaimWeeklyBonus.value = data['can_claim_weekly_bonus'] == true;
-    previousWeekBonusPending.value = data['previous_week_bonus_pending'] == true;
-    final days = data['weekly_day_status'];
-    if (days is List) {
-      weeklyDayStatus.value = days
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
     }
   }
 
@@ -239,5 +140,153 @@ class DashboardController extends GetxController {
     final m = (seconds % 3600) ~/ 60;
     if (h > 0) return '${h}h ${m}m';
     return '${m}m';
+  }
+
+  bool get isOffline => hostStatus == HostStatus.offline;
+
+  Map<String, int> get tierRequirements => {
+    'iron': 0,
+    'silver': 60,
+    'gold': 120,
+    'diamond': 180,
+  };
+
+  String? canChangeTier(String tier) {
+    if (!isOffline) {
+      return 'Tier can only be changed while you are offline';
+    }
+    
+    final requiredMinutes = tierRequirements[tier.toLowerCase()] ?? 0;
+    if (lifetimeTalkMinutes.value < requiredMinutes) {
+      final needed = requiredMinutes - lifetimeTalkMinutes.value;
+      return 'Need $needed more minutes to unlock $tier';
+    }
+    
+    return null;
+  }
+
+  Future<void> changeTier(String tier) async {
+    final validationError = canChangeTier(tier);
+    if (validationError != null) {
+      Get.snackbar('Cannot Change Tier', validationError);
+      return;
+    }
+
+    isChangingTier.value = true;
+    try {
+      await _api.post(ApiConstants.hostChangeTier, data: {'tier': tier});
+      await _loadTierInfo();
+      await _loadProfile();
+      Get.snackbar('Tier Updated', 'Your tier has been changed to $tier');
+    } on DioException catch (e) {
+      Get.snackbar('Error', _api.extractError(e));
+    } finally {
+      isChangingTier.value = false;
+    }
+  }
+
+  Future<void> _loadTierInfo() async {
+    try {
+      final response = await _api.get(ApiConstants.hostTier);
+      final data = JsonParse.toMap(response.data['data']);
+      if (data == null) return;
+      currentTier.value = data['active_tier']?.toString() ?? '';
+      lifetimeTalkMinutes.value = JsonParse.toInt(data['lifetime_talk_minutes']);
+      dayHostShare.value = JsonParse.toDouble(data['day_host_share']);
+      nightHostShare.value = JsonParse.toDouble(data['night_host_share']);
+      debugPrint('[Dashboard] Tier info loaded: $data');
+    } on DioException catch (e) {
+      debugPrint('[Dashboard] tier info load failed: ${_api.extractError(e)}');
+      // Fallback: calculate tier from profile data
+      _calculateTierFromProfile();
+    }
+
+    try {
+      final response = await _api.get(ApiConstants.hostTierProgress);
+      final data = JsonParse.toMap(response.data['data']);
+      if (data == null) return;
+      currentTierLabel.value = data['current_tier_label']?.toString() ?? '';
+      nextTier.value = data['next_tier']?.toString() ?? '';
+      nextTierLabel.value = data['next_tier_label']?.toString() ?? '';
+      minutesToNextTier.value = JsonParse.toInt(data['minutes_to_next_tier']);
+      final unlocked = data['unlocked_tiers'];
+      if (unlocked is List) {
+        unlockedTiers.value = unlocked.map((e) => e.toString()).toList();
+      }
+      final locked = data['locked_tiers'];
+      if (locked is List) {
+        lockedTiers.value = locked.map((e) => e.toString()).toList();
+      }
+      debugPrint('[Dashboard] Tier progress loaded: $data');
+    } on DioException catch (e) {
+      debugPrint('[Dashboard] tier progress load failed: ${_api.extractError(e)}');
+      // Fallback: calculate progress from current tier
+      _calculateTierProgress();
+    }
+  }
+
+  void _calculateTierFromProfile() {
+    // Fallback calculation based on total calls and rating
+    final minutes = lifetimeTalkMinutes.value > 0 ? lifetimeTalkMinutes.value : (totalCalls.value * 5); // Assume 5 min avg call
+    _calculateTierFromMinutes(minutes);
+  }
+
+  void _calculateTierFromMinutes(int minutes) {
+    String tier = 'iron';
+    String label = 'Iron';
+    String nextTierStr = 'silver';
+    String nextLabel = 'Silver';
+    int minutesToNext = 60 - minutes;
+    final dayShare = 45.0;
+    final nightShare = 50.0;
+
+    if (minutes >= 180) {
+      tier = 'diamond';
+      label = 'Diamond';
+      nextTierStr = '';
+      nextLabel = '';
+      minutesToNext = 0;
+    } else if (minutes >= 120) {
+      tier = 'gold';
+      label = 'Gold';
+      nextTierStr = 'diamond';
+      nextLabel = 'Diamond';
+      minutesToNext = 180 - minutes;
+    } else if (minutes >= 60) {
+      tier = 'silver';
+      label = 'Silver';
+      nextTierStr = 'gold';
+      nextLabel = 'Gold';
+      minutesToNext = 120 - minutes;
+    }
+
+    currentTier.value = tier;
+    currentTierLabel.value = label;
+    nextTier.value = nextTierStr;
+    nextTierLabel.value = nextLabel;
+    minutesToNextTier.value = minutesToNext;
+    dayHostShare.value = dayShare;
+    nightHostShare.value = nightShare;
+    lifetimeTalkMinutes.value = minutes;
+
+    // Set unlocked/locked tiers
+    unlockedTiers.value = ['iron'];
+    lockedTiers.value = ['silver', 'gold', 'diamond'];
+    if (minutes >= 60) {
+      unlockedTiers.value = ['iron', 'silver'];
+      lockedTiers.value = ['gold', 'diamond'];
+    }
+    if (minutes >= 120) {
+      unlockedTiers.value = ['iron', 'silver', 'gold'];
+      lockedTiers.value = ['diamond'];
+    }
+    if (minutes >= 180) {
+      unlockedTiers.value = ['iron', 'silver', 'gold', 'diamond'];
+      lockedTiers.value = [];
+    }
+  }
+
+  void _calculateTierProgress() {
+    _calculateTierFromMinutes(lifetimeTalkMinutes.value);
   }
 }
